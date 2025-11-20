@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Zpětná vazba k objednávce</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;margin:28px;max-width:760px}
+    label{display:block;margin:12px 0}
+    textarea{width:100%;min-height:100px}
+    select,input,textarea,button{font-size:1rem;padding:8px}
+    .hidden{display:none}
+    .muted{color:#666;font-size:.95rem}
+    .error{color:#a00}
+  </style>
+</head>
+<body>
+  <h1>Zpětná vazba k objednávce</h1>
+  <p class="muted">Tento formulář automaticky převezme ID objednávky z odkazu (parametr <code>orderId</code>).</p>
+
+  <div id="noId" class="error hidden">Chybí ID objednávky v URL. Prosím otevřete formulář přes odkaz z e-mailu.</div>
+
+  <form id="feedbackForm">
+    <!-- Skryté pole s orderId -->
+    <input type="hidden" id="orderId" name="orderId">
+
+    <label>
+      Jak jste byli spokojeni?
+      <select name="rating" required>
+        <option value="">Vyberte…</option>
+        <option value="1">1 – vůbec ne</option>
+        <option value="2">2</option>
+        <option value="3">3 – OK</option>
+        <option value="4">4</option>
+        <option value="5">5 – super</option>
+      </select>
+    </label>
+
+    <label>
+      Komentář:
+      <textarea name="comment" placeholder="Volitelně napište pár slov"></textarea>
+    </label>
+
+    <button type="submit">Odeslat</button>
+  </form>
+
+  <p id="result" class="muted"></p>
+
+  <script>
+    // --- NASTAVENÍ ---
+    // Vložte sem URL svého Power Automate (HTTP trigger)
+    const endpointUrl = "REPLACE_WITH_YOUR_POWER_AUTOMATE_URL";
+
+    // --- získání parametru orderId z URL ---
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get("orderId");
+
+    const orderInput = document.getElementById("orderId");
+    const noIdEl = document.getElementById("noId");
+    const form = document.getElementById("feedbackForm");
+    const resultEl = document.getElementById("result");
+
+    if (!orderId) {
+      // Pokud chybí ID, upozorníme uživatele a skryjeme formulář
+      noIdEl.classList.remove('hidden');
+      form.querySelector('button[type="submit"]').disabled = true;
+    } else {
+      orderInput.value = orderId;
+    }
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      // Sestavíme objekt z formuláře
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      // Přidáme čas odeslání
+      data.submittedAt = new Date().toISOString();
+
+      try {
+        resultEl.textContent = 'Odesílám…';
+        const resp = await fetch(endpointUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (resp.ok) {
+          resultEl.textContent = 'Děkujeme — formulář byl odeslán.';
+          form.classList.add('hidden');
+        } else {
+          const text = await resp.text();
+          resultEl.textContent = 'Chyba při odesílání: ' + resp.status + ' ' + text;
+        }
+      } catch (err) {
+        resultEl.textContent = 'Chyba sítě: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
