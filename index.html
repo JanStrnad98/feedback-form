@@ -3,61 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Zpětná vazba k objednávce</title>
+  <title>Měření - formulář</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;margin:28px;max-width:760px}
-    label{display:block;margin:12px 0}
-    textarea{width:100%;min-height:100px}
-    select,input,textarea,button{font-size:1rem;padding:8px}
-    .hidden{display:none}
+    table{border-collapse:collapse;width:100%;margin-top:20px}
+    th,td{border:1px solid #ccc;padding:8px;text-align:center}
+    input{width:90%;padding:4px;font-size:1rem}
     .muted{color:#666;font-size:.95rem}
+    .hidden{display:none}
     .error{color:#a00}
   </style>
 </head>
 <body>
-  <h1>Zpětná vazba k objednávce</h1>
+  <h1>Měření</h1>
   <p class="muted">Tento formulář automaticky převezme ID objednávky z odkazu (parametr <code>orderId</code>).</p>
 
   <div id="noId" class="error hidden">Chybí ID objednávky v URL. Prosím otevřete formulář přes odkaz z e-mailu.</div>
 
-  <form id="feedbackForm">
-    <!-- Skryté pole s orderId -->
+  <form id="measurementForm">
     <input type="hidden" id="orderId" name="orderId">
 
-    <label>
-      Jak jste byli spokojeni?
-      <select name="rating" required>
-        <option value="">Vyberte…</option>
-        <option value="1">1 – vůbec ne</option>
-        <option value="2">2</option>
-        <option value="3">3 – OK</option>
-        <option value="4">4</option>
-        <option value="5">5 – super</option>
-      </select>
-    </label>
+    <table>
+      <thead>
+        <tr>
+          <th>Měření</th>
+          <th>Vzdálenost</th>
+          <th>Množství vláhy (ml)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Dynamicky vytvoříme 10 řádků -->
+      </tbody>
+    </table>
 
-    <label>
-      Komentář:
-      <textarea name="comment" placeholder="Volitelně napište pár slov"></textarea>
-    </label>
-
-    <button type="submit">Odeslat</button>
+    <button type="submit" style="margin-top:15px">Odeslat</button>
   </form>
 
   <p id="result" class="muted"></p>
 
   <script>
-    // --- NASTAVENÍ ---
     const endpointUrl = "https://c42f7e6779ba4b8498cd645f1a37c3.17.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7407f5ee711f43148cecbea3dddcc409/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=JRBOTaAT7JlpD18jpYAg8Gxq3pmyOVfdlCELvDvDerE";
 
-    // --- získání parametru orderId z URL ---
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("orderId");
 
     const orderInput = document.getElementById("orderId");
     const noIdEl = document.getElementById("noId");
-    const form = document.getElementById("feedbackForm");
+    const form = document.getElementById("measurementForm");
     const resultEl = document.getElementById("result");
+    const tbody = form.querySelector('tbody');
 
     if (!orderId) {
       noIdEl.classList.remove('hidden');
@@ -66,22 +60,62 @@
       orderInput.value = orderId;
     }
 
+    // Vytvoření 10 řádků tabulky
+    for (let i=1; i<=10; i++) {
+      const tr = document.createElement('tr');
+      const cellNumber = document.createElement('td');
+      cellNumber.textContent = `${i}. měření`;
+
+      const cellDistance = document.createElement('td');
+      const inputDistance = document.createElement('input');
+      inputDistance.type = 'number';
+      inputDistance.name = `distance_${i}`;
+      inputDistance.required = true;
+      cellDistance.appendChild(inputDistance);
+
+      const cellMoisture = document.createElement('td');
+      const inputMoisture = document.createElement('input');
+      inputMoisture.type = 'number';
+      inputMoisture.name = `moisture_${i}`;
+      inputMoisture.required = true;
+      cellMoisture.appendChild(inputMoisture);
+
+      tr.appendChild(cellNumber);
+      tr.appendChild(cellDistance);
+      tr.appendChild(cellMoisture);
+      tbody.appendChild(tr);
+    }
+
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
       const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-      data.submittedAt = new Date().toISOString();
+
+      // Převod na JSON s polem výsledků
+      const results = [];
+      for (let i=1; i<=10; i++) {
+        results.push({
+          measurement: i,
+          distance: formData.get(`distance_${i}`),
+          moisture: formData.get(`moisture_${i}`)
+        });
+      }
+
+      const dataToSend = {
+        orderId: formData.get('orderId'),
+        measurements: results,
+        submittedAt: new Date().toISOString()
+      };
 
       try {
         resultEl.textContent = 'Odesílám…';
         const resp = await fetch(endpointUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(dataToSend)
         });
 
         if (resp.ok) {
-          resultEl.textContent = 'Děkujeme — formulář byl odeslán.';
+          resultEl.textContent = 'Děkujeme — data byla odeslána.';
           form.classList.add('hidden');
         } else {
           const text = await resp.text();
