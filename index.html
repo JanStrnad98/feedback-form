@@ -48,8 +48,7 @@
 
   <script>
     // --- NASTAVENÍ ---
-    // Vložte sem URL svého Power Automate (HTTP trigger)
-    const endpointUrl = "REPLACE_WITH_YOUR_POWER_AUTOMATE_URL";
+    const endpointUrl = "https://c42f7e6779ba4b8498cd645f1a37c3.17.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7407f5ee711f43148cecbea3dddcc409/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=JRBOTaAT7JlpD18jpYAg8Gxq3pmyOVfdlCELvDvDerE";
 
     // --- získání parametru orderId z URL ---
     const params = new URLSearchParams(window.location.search);
@@ -61,7 +60,6 @@
     const resultEl = document.getElementById("result");
 
     if (!orderId) {
-      // Pokud chybí ID, upozorníme uživatele a skryjeme formulář
       noIdEl.classList.remove('hidden');
       form.querySelector('button[type="submit"]').disabled = true;
     } else {
@@ -70,11 +68,8 @@
 
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
-      // Sestavíme objekt z formuláře
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
-
-      // Přidáme čas odeslání
       data.submittedAt = new Date().toISOString();
 
       try {
