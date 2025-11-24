@@ -102,6 +102,7 @@
       let fileBase64 = null;
       let fileName = null;
 
+      
       if (fileInput.files.length > 0) {
         fileBase64 = await fileToBase64(fileInput.files[0]);
         fileName = fileInput.files[0].name;
