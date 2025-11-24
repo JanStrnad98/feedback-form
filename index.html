@@ -60,7 +60,6 @@
       orderInput.value = orderId;
     }
 
-    // Vytvoření 10 řádků tabulky
     for (let i=1; i<=10; i++) {
       const tr = document.createElement('tr');
       const cellNumber = document.createElement('td');
@@ -86,13 +85,30 @@
       tbody.appendChild(tr);
     }
 
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
       const formData = new FormData(form);
 
-      // Převod na JSON s polem výsledků
+      const fileInput = document.getElementById('attachment');
+      let fileBase64 = null;
+      let fileName = null;
+
+      if (fileInput.files.length > 0) {
+        fileBase64 = await fileToBase64(fileInput.files[0]);
+        fileName = fileInput.files[0].name;
+      }
+
       const results = [];
-      for (let i=1; i<=10; i++) {
+      for (let i=1; i<=4; i++) {
         results.push({
           measurement: i,
           distance: formData.get(`distance_${i}`),
@@ -103,6 +119,8 @@
       const dataToSend = {
         orderId: formData.get('orderId'),
         measurements: results,
+        file: fileBase64,
+        fileName: fileName,
         submittedAt: new Date().toISOString()
       };
 
