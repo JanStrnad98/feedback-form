@@ -2,148 +2,110 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Měření - formulář</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Potvrzení seznámení</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;margin:28px;max-width:760px}
-    table{border-collapse:collapse;width:100%;margin-top:20px}
-    th,td{border:1px solid #ccc;padding:8px;text-align:center}
-    input{width:90%;padding:4px;font-size:1rem}
-    .muted{color:#666;font-size:.95rem}
-    .hidden{display:none}
-    .error{color:#a00}
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f7f7f7;
+    }
+    .container {
+      max-width: 500px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    label {
+      font-weight: bold;
+      margin-top: 12px;
+      display: block;
+    }
+    input, a {
+      display: block;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 25px;
+      padding: 12px 20px;
+      background: #0078ff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fcc;
+    }
   </style>
 </head>
 <body>
-  <h1>Měření</h1>
-  <p class="muted">Tento formulář automaticky převezme ID objednávky z odkazu (parametr <code>orderId</code>).</p>
 
-  <div id="noId" class="error hidden">Chybí ID objednávky v URL. Prosím otevřete formulář přes odkaz z e-mailu.</div>
+<div class="container">
+  <h2>Potvrzení seznámení s dokumentem</h2>
 
-  <form id="measurementForm">
-    <input type="hidden" id="orderId" name="orderId">
+  <label>ID evidence:</label>
+  <div id="idValue"></div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Měření</th>
-          <th>Vzdálenost</th>
-          <th>Množství vláhy (ml)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Dynamicky vytvoříme 10 řádků -->
-      </tbody>
-    </table>
+  <label>Název dokumentu:</label>
+  <div id="docNameValue"></div>
 
-    <button type="submit" style="margin-top:15px">Odeslat</button>
-  </form>
+  <label>Odkaz na dokument:</label>
+  <a id="docLinkValue" target="_blank">Otevřít dokument</a>
 
-  <p id="result" class="muted"></p>
+  <button id="submitBtn">Potvrdit seznámení</button>
 
-  <script>
-    const endpointUrl = "https://c42f7e6779ba4b8498cd645f1a37c3.17.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7407f5ee711f43148cecbea3dddcc409/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=JRBOTaAT7JlpD18jpYAg8Gxq3pmyOVfdlCELvDvDerE";
+  <p id="result" style="margin-top:20px; font-weight:bold;"></p>
+</div>
 
-    const params = new URLSearchParams(window.location.search);
-    const orderId = params.get("orderId");
+<script>
+  const endpoint = "https://c42f7e6779ba4b8498cd645f1a37c3.17.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7407f5ee711f43148cecbea3dddcc409/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=JRBOTaAT7JlpD18jpYAg8Gxq3pmyOVfdlCELvDvDerE";
 
-    const orderInput = document.getElementById("orderId");
-    const noIdEl = document.getElementById("noId");
-    const form = document.getElementById("measurementForm");
-    const resultEl = document.getElementById("result");
-    const tbody = form.querySelector('tbody');
+  // Načtení parametrů z URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const id = urlParams.get("id");
+  const docName = urlParams.get("docName");
+  const docLink = urlParams.get("docLink");
 
-    if (!orderId) {
-      noIdEl.classList.remove('hidden');
-      form.querySelector('button[type="submit"]').disabled = true;
-    } else {
-      orderInput.value = orderId;
-    }
+  // Propis dat do stránky
+  document.getElementById("idValue").textContent = id ?? "Nezadáno";
+  document.getElementById("docNameValue").textContent = docName ?? "Nezadáno";
+  document.getElementById("docLinkValue").href = docLink ?? "#";
 
-    for (let i=1; i<=10; i++) {
-      const tr = document.createElement('tr');
-      const cellNumber = document.createElement('td');
-      cellNumber.textContent = `${i}. měření`;
+  // Po kliknutí na potvrdit
+  document.getElementById("submitBtn").addEventListener("click", async () => {
+    const payload = {
+      id: id,
+      documentName: docName,
+      documentLink: docLink,
+      confirmed: true,
+      timestamp: new Date().toISOString()
+    };
 
-      const cellDistance = document.createElement('td');
-      const inputDistance = document.createElement('input');
-      inputDistance.type = 'number';
-      inputDistance.name = `distance_${i}`;
-      inputDistance.required = true;
-      cellDistance.appendChild(inputDistance);
+    document.getElementById("result").textContent = "Odesílám...";
 
-      const cellMoisture = document.createElement('td');
-      const inputMoisture = document.createElement('input');
-      inputMoisture.type = 'number';
-      inputMoisture.name = `moisture_${i}`;
-      inputMoisture.required = true;
-      cellMoisture.appendChild(inputMoisture);
-
-      tr.appendChild(cellNumber);
-      tr.appendChild(cellDistance);
-      tr.appendChild(cellMoisture);
-      tbody.appendChild(tr);
-    }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
+
+      if (res.ok) {
+        document.getElementById("result").textContent = "Seznámení bylo úspěšně potvrzeno.";
+      } else {
+        document.getElementById("result").textContent = "Chyba při odesílání.";
+      }
+
+    } catch (err) {
+      document.getElementById("result").textContent = "Došlo k chybě: " + err.message;
     }
+  });
+</script>
 
-    form.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const formData = new FormData(form);
-
-      const fileInput = document.getElementById('attachment');
-      let fileBase64 = null;
-      let fileName = null;
-
-      
-      if (fileInput.files.length > 0) {
-        fileBase64 = await fileToBase64(fileInput.files[0]);
-        fileName = fileInput.files[0].name;
-      }
-
-      const results = [];
-      for (let i=1; i<=4; i++) {
-        results.push({
-          measurement: i,
-          distance: formData.get(`distance_${i}`),
-          moisture: formData.get(`moisture_${i}`)
-        });
-      }
-
-      const dataToSend = {
-        orderId: formData.get('orderId'),
-        measurements: results,
-        file: fileBase64,
-        fileName: fileName,
-        submittedAt: new Date().toISOString()
-      };
-
-      try {
-        resultEl.textContent = 'Odesílám…';
-        const resp = await fetch(endpointUrl, {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(dataToSend)
-        });
-
-        if (resp.ok) {
-          resultEl.textContent = 'Děkujeme — data byla odeslána.';
-          form.classList.add('hidden');
-        } else {
-          const text = await resp.text();
-          resultEl.textContent = 'Chyba při odesílání: ' + resp.status + ' ' + text;
-        }
-      } catch (err) {
-        resultEl.textContent = 'Chyba sítě: ' + err.message;
-      }
-    });
-  </script>
 </body>
 </html>
